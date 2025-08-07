@@ -14,9 +14,9 @@ jobs:
 
       - name: Build Unreal Project
         env:
-          UE_PATH: 'D:\UE_5.4'
-          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\BuildOutput'
+          UE_PATH: "D:\\UE_5.4"
+          PROJECT_PATH: "E:\\dohan\\AcherOfLegend\\AcherOfLegend\\AcherOfLegend.uproject"
+          OUTPUT_PATH: "E:\\dohan\\AcherOfLegend\\BuildOutput"
         shell: pwsh
         run: |
           & "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
