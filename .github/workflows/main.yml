@@ -1,18 +1,49 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+name: Runner Sanity Demo
+run-name: ${{ github.actor }} is testing self-hosted runner 🚀
+
+on:
+  workflow_dispatch: {}          # Actions 탭에서 수동 실행 가능
+  push:
+    branches: [ master ]         # 실제 기본 브랜치가 main이면 main으로
+
 jobs:
-  Explore-GitHub-Actions:
-    runs-on: ubuntu-latest
+  Explore-Self-Hosted:
+    runs-on: [self-hosted, Windows]   # 네 러너 라벨과 맞춰!
+    defaults:
+      run:
+        shell: pwsh                  # PowerShell로 통일
+
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Echo event & runner info
+        run: |
+          echo "🎉 Trigger: ${{ github.event_name }}"
+          echo "🖥️ Runner OS: ${{ runner.os }}"
+          echo "🔎 Ref: ${{ github.ref }}"
+          echo "📦 Repo: ${{ github.repository }}"
+          echo "👤 Actor: ${{ github.actor }}"
+          echo "🏷️ Job Name: $env:GITHUB_JOB"
+          echo "📂 Workspace: $env:GITHUB_WORKSPACE"
+          echo "🧑 User: $(whoami)"
+          echo "🧱 Computer: $env:COMPUTERNAME"
+          echo "🧮 Arch: $env:PROCESSOR_ARCHITECTURE"
+          $PSVersionTable.PSVersion
+
+      - name: Print PATH and where git
+        run: |
+          $env:PATH -split ';' | ForEach-Object { Write-Host $_ }
+          where.exe git
+          git --version
+
+      - name: TLS test to github.com:443
+        run: |
+          Test-NetConnection github.com -Port 443
+
       - name: Check out repository code
         uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
+
+      - name: List files in workspace
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          Get-ChildItem -Force $env:GITHUB_WORKSPACE | Format-List
+
+      - name: Final status
+        run: echo "🍏 Job status is ${{ job.status }}."
