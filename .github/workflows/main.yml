@@ -1,80 +1,11 @@
-name: Package Unreal Engine Project
-
+name: Ping
 on:
   push:
     branches: [ master ]
   workflow_dispatch:
 
 jobs:
-  build:
+  say-hello:
     runs-on: self-hosted
-    name: Package Unreal Engine Game
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 경로/권한/존재 확인
-      - name: Verify paths
-        shell: pwsh
-        env:
-          UE_PATH: 'D:\UE_5.4'
-          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
-        run: |
-          Write-Host "UE_PATH=$env:UE_PATH"
-          if (-not (Test-Path "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat")) { throw "RunUAT.bat not found" }
-          if (-not (Test-Path $env:PROJECT_PATH)) { throw "uproject not found" }
-          New-Item -ItemType Directory -Force -Path $env:OUTPUT_PATH | Out-Null
-          # E: 드라이브 접근 권한 확인
-          if (-not (Test-Path "E:\")) { throw "Runner can't access E: drive" }
-
-      # VS 빌드 환경 로드 후 UAT 실행 (CMD 셸)
-      - name: Package Project (cmd + VsDevCmd)
-        shell: cmd
-        env:
-          UE_PATH: D:\UE_5.4
-          PROJECT_PATH: E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject
-          OUTPUT_PATH: E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput
-          VS_DEV_CMD: "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"
-        run: |
-          if not exist "%VS_DEV_CMD%" (
-            echo VS DevCmd not found at %VS_DEV_CMD%
-            set VS_DEV_CMD=%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat
-          )
-          call "%VS_DEV_CMD%" -arch=amd64 || exit /b 1
-          "%UE_PATH%\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
-            -project="%PROJECT_PATH%" ^
-            -noP4 -platform=Win64 -clientconfig=Development ^
-            -cook -allmaps -build -stage -pak -archive ^
-            -archivedirectory="%OUTPUT_PATH%" ^
-            -utf8output -verbose
-
-      # 결과 폴더명 가변(Windows/WindowsNoEditor 둘 다) + 압축
-      - name: Zip Output
-        shell: pwsh
-        if: always()
-        env:
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
-        run: |
-          Set-Location $env:OUTPUT_PATH
-          $target = Get-ChildItem -Directory -Name "Windows*"
-          if (-not $target) { Write-Host "No Windows* folder; skip zip."; exit 0 }
-          if (Test-Path "Build.zip") { Remove-Item "Build.zip" -Force }
-          Compress-Archive -Path $target -DestinationPath Build.zip
-
-      # 항상 로그 업로드(실패 원인 추적)
-      - name: Upload UAT logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: UAT-logs
-          path: |
-            D:\UE_5.4\Engine\Programs\AutomationTool\Saved\Logs\*.log
-            E:\dohan\AcherOfLegend\AcherOfLegend\Saved\Logs\*.log
-
-      - name: Upload packaged build
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: packaged-build
-          path: E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput\Build.zip
+      - run: echo "Hello from self-hosted runner"
