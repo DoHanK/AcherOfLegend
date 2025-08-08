@@ -3,7 +3,7 @@ name: Package Unreal Engine AcherOfLegend Project
 on:
   push:
     branches:
-      - main
+      - master
     paths-ignore:
       - 'Windows/**' # windows 폴더 내 모든 파일 제외
       - 'Build/**'
