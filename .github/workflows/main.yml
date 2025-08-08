@@ -1,51 +1,5 @@
-name: Package Unreal Engine Project
-
-on:
-  push:
-    branches: [ master ]
-  workflow_dispatch:
-
 jobs:
-  build:
-    # 필요하면 라벨 더 붙여도 됨: runs-on: [self-hosted, Windows, X64]
+  ping:
     runs-on: self-hosted
-    name: Package Unreal Engine Game
-
     steps:
-      # 1) 코드 체크아웃 (v4 권장)
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 2) 경로/권한 확인 (빨리 실패하게)
-      - name: Verify paths
-        shell: pwsh
-        env:
-          UE_PATH: 'D:\UE_5.4'
-          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
-        run: |
-          Write-Host "UE_PATH=$env:UE_PATH"
-          if (-not (Test-Path "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat")) { throw "RunUAT.bat not found" }
-          if (-not (Test-Path $env:PROJECT_PATH)) { throw "uproject not found" }
-          if (-not (Test-Path "E:\")) { throw "Runner can't access E: drive" }
-          New-Item -ItemType Directory -Force -Path $env:OUTPUT_PATH | Out-Null
-
-      # 3) VS 빌드 환경 로드 + UAT 실행 (CMD, 줄바꿈은 ^)
-      - name: Package Project (cmd + VsDevCmd)
-        shell: cmd
-        env:
-          UE_PATH: D:\UE_5.4
-          PROJECT_PATH: E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject
-          OUTPUT_PATH: E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput
-          # VS 에디션에 따라 Community/BuildTools 경로 중 하나가 존재
-          VS_DEV_CMD: "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"
-        run: |
-          if not exist "%VS_DEV_CMD%" (
-            set VS_DEV_CMD=%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat
-          )
-          if not exist "%VS_DEV_CMD%" (
-            echo VsDevCmd.bat not found. Install VS2022 (Desktop C++) or BuildTools + Windows 10 SDK.
-            exit /b 1
-          )
-          call "%VS_DEV_CMD%" -arch=amd64 || exit /b 1
-          "%UE_PATH%\Engine\Build\BatchFiles\RunU_
+      - run: echo "ping from same workflow"
