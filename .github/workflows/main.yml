@@ -30,7 +30,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4   # v4 권장
 
-      - name: Sanity: check paths
+      - name: "Sanity: check paths"
         shell: pwsh
         run: |
           Test-Path 'D:\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat'
