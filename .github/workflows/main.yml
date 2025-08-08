@@ -1,5 +1,12 @@
+name: UE Ping
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+
 jobs:
   ping:
     runs-on: self-hosted
     steps:
-      - run: echo "ping from same workflow"
+      - run: echo "UE workflow detected"
