@@ -20,8 +20,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - run: echo "start Echo Project"
-      
       # 2. Unreal Engine 프로젝트 패키징
       - name: Package Project
         env: 
