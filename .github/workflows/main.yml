@@ -2,37 +2,46 @@ name: Package Unreal Engine AcherOfLegend Project
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
     paths-ignore:
-      - 'Windows/**' # windows 폴더 내 모든 파일 제외
+      - 'Windows/**'
       - 'Build/**'
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
   build:
     runs-on: self-hosted
     name: Package Unreal Engine Game
     steps:
-      # 1. 코드 체크아웃
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Unreal Engine 프로젝트 패키징
       - name: Package Project
-        env: 
-          UE_PATH: 'D:\Epic Games\UE_5.4' # Path to your Unreal Engine installation
-          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject' # Path to your Unreal project file
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput' # Path to where you want to store the packaged game
+        shell: pwsh
+        env:
+          UE_PATH: 'D:\Epic Games\UE_5.4'
+          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
         run: |
-          # Try to run empty UAT to check for correct path
-          & $env:D:\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat BuildCookRun -project="$env:PROJECT_PATH" -noP4 -platform=Win64 -clientconfig=Development -serverconfig=Development -cook -allmaps -build -stage -pak -archive -archivedirectory="$env:OUTPUT_PATH"
-        
-      # 3. Windows 폴더 압축
+          & "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
+            -project="$env:PROJECT_PATH" `
+            -noP4 -platform=Win64 `
+            -clientconfig=Development `
+            -cook -allmaps -build -stage -pak -archive `
+            -archivedirectory="$env:OUTPUT_PATH"
+
       - name: Compress Windows Folder
+        shell: pwsh
+        env:
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
         run: |
-          cd "E:\dohan\AcherOfLegend\AcherOfLegend\Saved"
-          if (Test-Path "Windows.zip") { Remove-Item "Windows.zip" } # 기존 zip 파일 삭제
-          Compress-Archive -Path Windows -DestinationPath Windows.zip # Windows 폴더 압축
+          $win = Join-Path $env:OUTPUT_PATH 'Windows'
+          $winNo = Join-Path $env:OUTPUT_PATH 'WindowsNoEditor'
+          if (Test-Path $win)     { $target = $win }
+          elseif (Test-Path $winNo){ $target = $winNo }
+          else { throw "Packaged folder not found under $env:OUTPUT_PATH (checked Windows, WindowsNoEditor)" }
+
+          $zip = Join-Path $env:OUTPUT_PATH 'Windows.zip'
+          if (Test-Path $zip) { Remove-Item $zip }
+          Compress-Archive -Path $target -DestinationPath $zip
