@@ -8,7 +8,7 @@ on:
 
 jobs:
   Explore-Self-Hosted:
-    runs-on: [self-hosted, Windows]   # 네 러너 라벨과 맞춰!
+    runs-on: [self-hosted, Windows, x64]   # 네 러너 라벨과 맞춰!
     defaults:
       run:
         shell: pwsh                  # PowerShell로 통일
