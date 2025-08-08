@@ -1,15 +1,75 @@
-name: runner-sanity
-on: { workflow_dispatch: {} }
+name: Package Unreal Engine AcherOfLegend Project
 
-permissions: { contents: read }
+on:
+  workflow_dispatch: {}          # 수동 실행 버튼 (먼저 테스트)
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'Windows/**'
+      - 'Build/**'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
 
 jobs:
-  ping:
-    runs-on: [self-hosted, Windows]   # ← 실제 러너 라벨에 맞게 수정 필요
+  build:
+    runs-on: [self-hosted, Windows, X64]   # ← 네 러너 라벨 전부 일치
+    name: Package Unreal Engine Game
     steps:
-      - name: Ping
+      - name: Ping runner
         shell: pwsh
+        run: echo "Runner OK"
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Preflight
+        shell: pwsh
+        env:
+          UE_PATH: 'D:\Epic Games\UE_5.4'
+          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
         run: |
-          Write-Host "Runner OS: $env:RUNNER_OS"
-          whoami
-          Get-Location
+          $uat = "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat"
+          Write-Host "UE_PATH=$env:UE_PATH"
+          Write-Host "PROJECT_PATH=$env:PROJECT_PATH"
+          Write-Host "OUTPUT_PATH=$env:OUTPUT_PATH"
+          if (!(Test-Path $uat)) { throw "UAT not found: $uat" }
+          if (!(Test-Path $env:PROJECT_PATH)) { throw "uproject not found: $env:PROJECT_PATH" }
+          if (!(Test-Path $env:OUTPUT_PATH)) { New-Item -ItemType Directory -Path $env:OUTPUT_PATH | Out-Null }
+
+      - name: Package Project (UAT BuildCookRun)
+        shell: pwsh
+        env:
+          UE_PATH: 'D:\Epic Games\UE_5.4'
+          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
+        run: |
+          $uat = "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat"
+          $log = Join-Path $env:OUTPUT_PATH "uat_buildcookrun.log"
+          & "$uat" BuildCookRun `
+            -project="$env:PROJECT_PATH" `
+            -noP4 -platform=Win64 `
+            -clientconfig=Development `
+            -cook -allmaps -build -stage -pak -archive `
+            -archivedirectory="$env:OUTPUT_PATH" `
+            -utf8output *>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content $log -Tail 80
+            throw "UAT BuildCookRun failed: $LASTEXITCODE"
+          }
+
+      - name: Compress packaged folder
+        shell: pwsh
+        env:
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
+        run: |
+          $win   = Join-Path $env:OUTPUT_PATH 'Windows'
+          $winNo = Join-Path $env:OUTPUT_PATH 'WindowsNoEditor'
+          if (Test-Path $win)      { $target = $win }
+          elseif (Test-Path $winNo){ $target = $winNo }
+          else { throw "Packaged folder not found in $env:OUTPUT_PATH (Windows/WindowsNoEditor)" }
+          $zip = Join-Path $env:OUTPUT_PATH 'Windows.zip'
+          if (Test-
