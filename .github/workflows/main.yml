@@ -9,7 +9,7 @@ on:
       - 'Build/**'
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   build:
