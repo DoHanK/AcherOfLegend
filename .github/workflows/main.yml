@@ -3,7 +3,7 @@ name: Package Unreal Engine Project
 on:
   push:
     branches:
-      - main
+      - master
     paths-ignore:
       - 'Windows/**'
       - 'Build/**'
