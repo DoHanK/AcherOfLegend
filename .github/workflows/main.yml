@@ -1,64 +1,18 @@
-name: Package Unreal Engine Acher Of LegendProject
-
-on:
-  workflow_dispatch: {}           # 수동 실행 버튼
-  push:
-    branches: [ master ]          # 실제 브랜치 이름 확인 필요
-    paths-ignore:
-      - 'Windows/**'
-      - 'Build/**'
-  pull_request:
-    branches: [ master ]
-
+name: GitHub Actions Demo
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+on: [push]
 jobs:
-  build:
-    runs-on: [self-hosted, Windows]
-    defaults:
-      run:
-        shell: pwsh               # 모든 run 스텝을 PowerShell로 실행
-    name: Package Unreal Engine Game
+  Explore-GitHub-Actions:
+    runs-on: ubuntu-latest
     steps:
-      # 0. 러너 환경 디버그
-      - name: Print PATH and where git
-        run: |
-          $env:PATH -split ';' | ForEach-Object { Write-Host $_ }
-          where.exe git
-
-      - name: Git version check
-        run: git --version
-
-      - name: TLS test to github.com:443
-        run: |
-          Test-NetConnection github.com -Port 443
-
-      # 1. 코드 체크아웃
-      - name: Checkout code
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
         uses: actions/checkout@v4
-
-      # 2. 경로 확인
-      - name: "Sanity: check paths"
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+      - name: List files in the repository
         run: |
-          Test-Path 'D:\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat'
-          Test-Path 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
-          New-Item -ItemType Directory -Force -Path 'E:\dohan\AcherOfLegend\AcherOfLegend\test\AcherOfLegend' | Out-Null
-
-      # 3. Unreal Engine 프로젝트 패키징
-      - name: Package Project
-        env:
-          UE_PATH: 'D:\Epic Games\UE_5.4'
-          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\test\AcherOfLegend'
-        run: >
-          & "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat"
-          BuildCookRun
-          -project="$env:PROJECT_PATH"
-          -noP4 -platform=Win64 -clientconfig=Development -serverconfig=Development
-          -cook -allmaps -build -stage -pak -archive
-          -archivedirectory="$env:OUTPUT_PATH"
-
-      # 4. Windows 폴더 압축
-      - name: Compress Windows Folder
-        run: |
-          cd "E:\dohan\AcherOfLegend\AcherOfLegend\test"
-          if (Test-Path "Windows.zip") { Remove-Item "Windows.zip" -Force }
-          Compress-Archive -Path Windows -DestinationPath Windows.zip -Force
+          ls ${{ github.workspace }}
+      - run: echo "🍏 This job's status is ${{ job.status }}."
