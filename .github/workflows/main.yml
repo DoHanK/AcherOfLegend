@@ -2,7 +2,8 @@ name: Build Unreal Project
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master ]   
+  workflow_dispatch:
 
 jobs:
   build:
@@ -10,12 +11,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Build Unreal Project
+      - name: Build Unreal Project (cmd)
+        shell: cmd
         run: |
           "C:\Program Files\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
           -project="E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject" ^
           -noP4 -platform=Win64 -clientconfig=Development ^
           -cook -allmaps -build -stage -pak -archive ^
           -archivedirectory="E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsNoEditor
+          path: E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput\Windows*
