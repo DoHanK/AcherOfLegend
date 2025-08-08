@@ -1,9 +1,9 @@
 name: Package Unreal Engine Acher Of LegendProject
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch: {}           # 수동 실행 버튼
   push:
-    branches: [ master ]
+    branches: [ master ]          # 실제 브랜치 이름 확인 필요
     paths-ignore:
       - 'Windows/**'
       - 'Build/**'
@@ -12,33 +12,38 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: [self-hosted, Windows]
+    defaults:
+      run:
+        shell: pwsh               # 모든 run 스텝을 PowerShell로 실행
     name: Package Unreal Engine Game
     steps:
-      - name: Check shell & user
-        shell: pwsh
+      # 0. 러너 환경 디버그
+      - name: Print PATH and where git
         run: |
-          echo "Hello from runner"
-          $PSVersionTable.PSVersion
-          whoami
+          $env:PATH -split ';' | ForEach-Object { Write-Host $_ }
+          where.exe git
 
-      - name: Check git
-        shell: pwsh
+      - name: Git version check
+        run: git --version
+
+      - name: TLS test to github.com:443
         run: |
-          git --version
+          Test-NetConnection github.com -Port 443
 
+      # 1. 코드 체크아웃
       - name: Checkout code
-        uses: actions/checkout@v4   # v4 권장
+        uses: actions/checkout@v4
 
+      # 2. 경로 확인
       - name: "Sanity: check paths"
-        shell: pwsh
         run: |
           Test-Path 'D:\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat'
           Test-Path 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
           New-Item -ItemType Directory -Force -Path 'E:\dohan\AcherOfLegend\AcherOfLegend\test\AcherOfLegend' | Out-Null
 
+      # 3. Unreal Engine 프로젝트 패키징
       - name: Package Project
-        shell: pwsh
         env:
           UE_PATH: 'D:\Epic Games\UE_5.4'
           PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
@@ -51,8 +56,8 @@ jobs:
           -cook -allmaps -build -stage -pak -archive
           -archivedirectory="$env:OUTPUT_PATH"
 
+      # 4. Windows 폴더 압축
       - name: Compress Windows Folder
-        shell: pwsh
         run: |
           cd "E:\dohan\AcherOfLegend\AcherOfLegend\test"
           if (Test-Path "Windows.zip") { Remove-Item "Windows.zip" -Force }
