@@ -46,12 +46,3 @@ jobs:
           Write-Host "RunUAT exists?" (Test-Path "D:\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat")
           where.exe msbuild
           where.exe dotnet
-
-      - name: Upload smoke log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: smoke-runner-log
-          path: |
-            D:\actions-runner\_diag\*.log
-            C:\actions-runner\_diag\*.log
