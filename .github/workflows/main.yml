@@ -1,40 +1,15 @@
-name: Package Unreal Engine AcherOfLegend Project
+name: runner-sanity
+on: { workflow_dispatch: {} }
 
-on:
-  workflow_dispatch: {}          # 수동 실행 버튼도 추가
-  push:
-    branches: [ master ]
-    paths-ignore:
-      - 'Windows/**'
-      - 'Build/**'
-  pull_request:
-    branches: [ master ]
-
-permissions:
-  contents: read                 # checkout 권한
+permissions: { contents: read }
 
 jobs:
-  build:
-    runs-on: [self-hosted, Windows]   # 러너 라벨 정확히 맞출 것
+  ping:
+    runs-on: [self-hosted, Windows]   # ← 실제 러너 라벨에 맞게 수정 필요
     steps:
       - name: Ping
         shell: pwsh
-        run: echo "runner alive"
-
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Package Project
-        shell: pwsh
-        env: 
-          UE_PATH: 'D:\Epic Games\UE_5.4'
-          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\BuildOutput'
         run: |
-          & "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat" -Help
-          & "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
-            -project="$env:PROJECT_PATH" `
-            -noP4 -platform=Win64 `
-            -clientconfig=Development `
-            -cook -allmaps -build -stage -pak -archive `
-            -archivedirectory="$env:OUTPUT_PATH"
+          Write-Host "Runner OS: $env:RUNNER_OS"
+          whoami
+          Get-Location
