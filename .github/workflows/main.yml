@@ -1,9 +1,9 @@
 name: Package Unreal Engine Acher Of LegendProject
 
 on:
-  workflow_dispatch: {}           # 수동 실행 버튼
+  workflow_dispatch: {}
   push:
-    branches: [ master ]          # 실제 기본 브랜치가 main이면 main으로 바꿔
+    branches: [ master ]
     paths-ignore:
       - 'Windows/**'
       - 'Build/**'
@@ -12,21 +12,34 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, Windows] 
+    runs-on: [self-hosted, Windows]
     name: Package Unreal Engine Game
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Echo (sanity check)
+      - name: Check shell & user
         shell: pwsh
         run: |
-          echo "start Echo Project"
+          echo "Hello from runner"
+          $PSVersionTable.PSVersion
           whoami
+
+      - name: Check git
+        shell: pwsh
+        run: |
+          git --version
+
+      - name: Checkout code
+        uses: actions/checkout@v4   # v4 권장
+
+      - name: Sanity: check paths
+        shell: pwsh
+        run: |
+          Test-Path 'D:\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat'
+          Test-Path 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
+          New-Item -ItemType Directory -Force -Path 'E:\dohan\AcherOfLegend\AcherOfLegend\test\AcherOfLegend' | Out-Null
 
       - name: Package Project
         shell: pwsh
-        env: 
+        env:
           UE_PATH: 'D:\Epic Games\UE_5.4'
           PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
           OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\test\AcherOfLegend'
