@@ -1,12 +1,57 @@
-name: UE Ping
-
+name: Runner Smoke Test
 on:
   workflow_dispatch:
   push:
     branches: [ master ]
 
 jobs:
-  ping:
+  smoke:
     runs-on: self-hosted
     steps:
-      - run: echo "UE workflow detected"
+      - name: Print runner info (pwsh)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Write-Host "PSVersion:"; $PSVersionTable
+          Write-Host "User:"; whoami
+          Write-Host "Env COMSPEC:" $env:COMSPEC
+          Write-Host "WorkDir:" (Get-Location)
+
+      - name: Echo with PowerShell
+        shell: pwsh
+        continue-on-error: true
+        run: echo "hello from pwsh"
+
+      - name: Echo with CMD
+        shell: cmd
+        continue-on-error: true
+        run: echo hello from cmd
+
+      - name: List C: root
+        shell: cmd
+        continue-on-error: true
+        run: dir C:\
+
+      - name: List E: root (check permission)
+        shell: cmd
+        continue-on-error: true
+        run: |
+          E:
+          dir E:\
+
+      - name: Check UE & tools
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Write-Host "RunUAT exists?" (Test-Path "D:\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat")
+          where.exe msbuild
+          where.exe dotnet
+
+      - name: Upload smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-runner-log
+          path: |
+            D:\actions-runner\_diag\*.log
+            C:\actions-runner\_diag\*.log
