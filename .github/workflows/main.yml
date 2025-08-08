@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, Windows]
+    runs-on: [self-hosted, Windows, X64]
     name: Package Unreal Engine Game
     steps:
       - name: Check shell & user
