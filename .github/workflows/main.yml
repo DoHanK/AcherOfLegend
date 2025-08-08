@@ -1,49 +1,30 @@
 name: Runner Sanity Demo
-run-name: ${{ github.actor }} is testing self-hosted runner 🚀
-
 on:
-  workflow_dispatch: {}          # Actions 탭에서 수동 실행 가능
-  push:
-    branches: [ master ]         # 실제 기본 브랜치가 main이면 main으로
-
+  workflow_dispatch: {}
 jobs:
-  Explore-Self-Hosted:
-    runs-on: [self-hosted, Windows, x64]   # 네 러너 라벨과 맞춰!
-    defaults:
-      run:
-        shell: pwsh                  # PowerShell로 통일
-
+  t:
+    runs-on: [self-hosted, Windows]
+    defaults: { run: { shell: pwsh } }
     steps:
-      - name: Echo event & runner info
+      - name: Echo runner info
         run: |
-          echo "🎉 Trigger: ${{ github.event_name }}"
-          echo "🖥️ Runner OS: ${{ runner.os }}"
-          echo "🔎 Ref: ${{ github.ref }}"
-          echo "📦 Repo: ${{ github.repository }}"
-          echo "👤 Actor: ${{ github.actor }}"
-          echo "🏷️ Job Name: $env:GITHUB_JOB"
-          echo "📂 Workspace: $env:GITHUB_WORKSPACE"
-          echo "🧑 User: $(whoami)"
-          echo "🧱 Computer: $env:COMPUTERNAME"
-          echo "🧮 Arch: $env:PROCESSOR_ARCHITECTURE"
+          echo "Runner OS = ${{ runner.os }}"
           $PSVersionTable.PSVersion
 
-      - name: Print PATH and where git
+      - name: Add Git to PATH (bin/cmd)
         run: |
-          $env:PATH -split ';' | ForEach-Object { Write-Host $_ }
+          $gitBin = 'C:\Program Files\Git\bin'
+          $gitCmd = 'C:\Program Files\Git\cmd'
+          if (Test-Path $gitBin) { echo $gitBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
+          if (Test-Path $gitCmd) { echo $gitCmd | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
           where.exe git
           git --version
 
-      - name: TLS test to github.com:443
-        run: |
-          Test-NetConnection github.com -Port 443
+      - name: TLS test
+        run: Test-NetConnection github.com -Port 443
 
-      - name: Check out repository code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: List files in workspace
-        run: |
-          Get-ChildItem -Force $env:GITHUB_WORKSPACE | Format-List
-
-      - name: Final status
-        run: echo "🍏 Job status is ${{ job.status }}."
+      - name: List files
+        run: Get-ChildItem -Force $env:GITHUB_WORKSPACE | Format-List
