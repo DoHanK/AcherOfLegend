@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Windows] 
     name: Package Unreal Engine Game
     steps:
       # 1. 코드 체크아웃
