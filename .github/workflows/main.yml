@@ -1,21 +1,118 @@
-name: Build Unreal Project
+name: Package Unreal Engine AcherOfLegend Game Project
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]         # 필요하면 main 추가: [ master, main ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch: {}          # 수동 실행 버튼
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: [ self-hosted, Windows, X64 ]   # 러너 라벨과 반드시 일치해야 함
+    name: AcherOfLegend Game
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      # 0) 리포 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Build Unreal Project
+      # 1) 러너/환경 기본 확인 (스텝이 실제로 실행되는지 확인)
+      - name: Sanity - runner info
+        shell: powershell
         run: |
-          "C:\Program Files\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
-          -project="E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject" ^
-          -noP4 -platform=Win64 -clientconfig=Development ^
-          -cook -allmaps -build -stage -pak -archive ^
-          -archivedirectory="E:\dohan\AcherOfLegend\BuildOutput"
+          $ErrorActionPreference='Stop'
+          Write-Host "RUNNER_OS=$env:RUNNER_OS"
+          Write-Host "RUNNER_ARCH=$env:RUNNER_ARCH"
+          Write-Host "RUNNER_NAME=$env:RUNNER_NAME"
+          Start-Sleep -Seconds 5
+          Write-Host "Runner step OK."
+
+      # 2) 경로/정책 진단
+      - name: Debug env & paths
+        shell: powershell
+        env:
+          UE_PATH: 'D:\Epic Games\UE_5.4'
+          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\Builds'   # 원하는 출력 폴더
+        run: |
+          $ErrorActionPreference='Stop'
+          Write-Host "=== ExecutionPolicy (List) ==="
+          Get-ExecutionPolicy -List | Format-Table -AutoSize | Out-String | Write-Host
+
+          Write-Host "=== Paths ==="
+          Write-Host "UE_PATH      : $env:UE_PATH"
+          Write-Host "PROJECT_PATH : $env:PROJECT_PATH"
+          Write-Host "OUTPUT_PATH  : $env:OUTPUT_PATH"
+
+          $uat = Join-Path $env:UE_PATH 'Engine\Build\BatchFiles\RunUAT.bat'
+          Write-Host "UE exists?        " (Test-Path $env:UE_PATH)
+          Write-Host "UAT exists?       " (Test-Path $uat)
+          Write-Host "uproject exists?  " (Test-Path $env:PROJECT_PATH)
+          if (-not (Test-Path $env:OUTPUT_PATH)) { New-Item -ItemType Directory -Path $env:OUTPUT_PATH | Out-Null }
+          Write-Host "OUTPUT exists?    " (Test-Path $env:OUTPUT_PATH)
+
+      # 3) 패키징 (UAT)
+      - name: Package Project (UAT)
+        shell: powershell
+        env:
+          UE_PATH: 'D:\Epic Games\UE_5.4'
+          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\Builds'
+        run: |
+          $ErrorActionPreference='Stop'
+          # 세션 내 실행정책 우회 (서비스/그룹정책 영향 방지)
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+
+          $uat = Join-Path $env:UE_PATH 'Engine\Build\BatchFiles\RunUAT.bat'
+          if (-not (Test-Path $uat)) { throw "RunUAT.bat not found: $uat" }
+          if (-not (Test-Path $env:PROJECT_PATH)) { throw "uproject not found: $env:PROJECT_PATH" }
+          if (-not (Test-Path $env:OUTPUT_PATH)) { New-Item -ItemType Directory -Path $env:OUTPUT_PATH | Out-Null }
+
+          Write-Host "=== Running UAT BuildCookRun ==="
+          & "$uat" BuildCookRun `
+            -project="$env:PROJECT_PATH" `
+            -noP4 -platform=Win64 `
+            -clientconfig=Development `
+            -cook -allmaps -build -stage -pak -archive `
+            -archivedirectory="$env:OUTPUT_PATH" `
+            -utf8output -unattended -NoLogTimes
+
+          $code = $LASTEXITCODE
+          Write-Host "UAT exit code: $code"
+          if ($code -ne 0) { throw "UAT failed with exit code $code" }
+
+      # 4) 결과 확인/압축
+      - name: Compress Windows output
+        shell: powershell
+        env:
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\Builds'
+        run: |
+          $ErrorActionPreference='Stop'
+          $winDir  = Join-Path $env:OUTPUT_PATH 'Windows'
+          if (-not (Test-Path $winDir)) { throw "Windows package folder not found: $winDir" }
+          $zipPath = Join-Path $env:OUTPUT_PATH 'Windows.zip'
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path $winDir -DestinationPath $zipPath
+          Write-Host "Zipped to: $zipPath"
+
+      # 5) 산출물 업로드 (선택)
+      - name: Upload packaged build
+        if: always()   # 실패해도 있으면 올림
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-build
+          path: |
+            E:\dohan\AcherOfLegend\AcherOfLegend\Builds\Windows.zip
+            E:\dohan\AcherOfLegend\AcherOfLegend\Builds\Windows\**
+
+      # 6) 실패 시 자세한 로그 모음
+      - name: Upload UAT/UBT logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UAT-Logs
+          path: |
+            $ENV:USERPROFILE\AppData\Roaming\Unreal Engine\AutomationTool\Logs\**\*.log
+            $ENV:LOCALAPPDATA\UnrealBuildTool\**\*.txt
+            **\Saved\Logs\*.log
