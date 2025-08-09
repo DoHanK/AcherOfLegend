@@ -2,45 +2,86 @@ name: Package Unreal Engine AcherOfLegend Game Project
 
 on:
   push:
-    branches:
-      - master
-    paths-ignore:
-      - 'Windows/**' # windows 폴더 내 모든 파일 제외
-      - 'Build/**'
+    branches: [ master ]
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
+  workflow_dispatch: {}   # 수동 실행 버튼
 
 jobs:
   build:
     runs-on: self-hosted
     name: AcherOfLegend Game
     steps:
-      # 1. 코드 체크아웃
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2. Unreal Engine 프로젝트 패키징
-      - name: Package Project
+      - name: Debug env & paths
         shell: powershell
-        env: 
-          UE_PATH: 'D:\Epic Games\UE_5.4' # Path to your Unreal Engine installation
-          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject' # Path to your Unreal project file
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\test' # Path to where you want to store the packaged game
         run: |
-          # Try to run empty UAT to check for correct path
-          & "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
+          $ErrorActionPreference = 'Stop'
+          Write-Host "=== ExecutionPolicy(list) ==="
+          Get-ExecutionPolicy -List | Format-Table -AutoSize | Out-String | Write-Host
+          Write-Host "=== Env ==="
+          Write-Host "UE_PATH= D:\Epic Games\UE_5.4"
+          Write-Host "PROJECT_PATH= E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject"
+          Write-Host "OUTPUT_PATH= E:\dohan\AcherOfLegend\AcherOfLegend\test"
+
+          $ue   = 'D:\Epic Games\UE_5.4'
+          $proj = 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
+          $out  = 'E:\dohan\AcherOfLegend\AcherOfLegend\test'
+
+          Write-Host "UE exists? " (Test-Path $ue)
+          Write-Host "UAT exists? " (Test-Path (Join-Path $ue 'Engine\Build\BatchFiles\RunUAT.bat'))
+          Write-Host "uproject exists? " (Test-Path $proj)
+          if (-not (Test-Path $out)) { New-Item -ItemType Directory -Path $out | Out-Null }
+          Write-Host "OUTPUT exists? " (Test-Path $out)
+
+      - name: Package Project (UAT)
+        shell: powershell
+        env:
+          UE_PATH: 'D:\Epic Games\UE_5.4'
+          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\test'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+
+          $uat = Join-Path $env:UE_PATH 'Engine\Build\BatchFiles\RunUAT.bat'
+          if (-not (Test-Path $uat)) { throw "RunUAT.bat not found: $uat" }
+          if (-not (Test-Path $env:PROJECT_PATH)) { throw "uproject not found: $env:PROJECT_PATH" }
+          if (-not (Test-Path $env:OUTPUT_PATH)) { New-Item -ItemType Directory -Path $env:OUTPUT_PATH | Out-Null }
+
+          Write-Host "=== Running UAT ==="
+          & "$uat" BuildCookRun `
             -project="$env:PROJECT_PATH" `
             -noP4 -platform=Win64 `
             -clientconfig=Development `
-            -serverconfig=Development `
             -cook -allmaps -build -stage -pak -archive `
-            -archivedirectory="$env:OUTPUT_PATH"
+            -archivedirectory="$env:OUTPUT_PATH" `
+            -utf8output -unattended -NoLogTimes
 
-      # 3. Windows 폴더 압축
+          $code = $LASTEXITCODE
+          Write-Host "UAT exit code: $code"
+          if ($code -ne 0) { throw "UAT failed with exit code $code" }
+
       - name: Compress Windows Folder
         shell: powershell
+        env:
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\test'
         run: |
-          cd "E:\dohan\AcherOfLegend\AcherOfLegend\test"
-          if (Test-Path "Windows.zip") { Remove-Item "Windows.zip" -Force } # 기존 zip 파일 삭제
-          Compress-Archive -Path "Windows" -DestinationPath "Windows.zip" # Windows 폴더 압축
+          $ErrorActionPreference = 'Stop'
+          $winDir = Join-Path $env:OUTPUT_PATH 'Windows'
+          if (-not (Test-Path $winDir)) { throw "Windows package folder not found: $winDir" }
+          $zipPath = Join-Path $env:OUTPUT_PATH 'Windows.zip'
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path $winDir -DestinationPath $zipPath
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UAT-Logs
+          path: |
+            $ENV:USERPROFILE\AppData\Roaming\Unreal Engine\AutomationTool\Logs\**\*.log
+            $ENV:LOCALAPPDATA\UnrealBuildTool\**\*.txt
+            **\Saved\Logs\*.log
