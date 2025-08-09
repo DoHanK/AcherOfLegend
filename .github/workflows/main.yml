@@ -1,4 +1,4 @@
-name: Package Unreal Engine AcherOfLegend Game Project
+name: Ping self-hosted Windows
 
 on:
   push:
@@ -6,16 +6,15 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build:
-    runs-on: [self-hosted, Windows]   # 윈도우 러너만 선택 (기본 라벨: self-hosted, Windows, X64)
-    name: AcherOfLegend Game
+  ping:
+    runs-on: [self-hosted, Windows, X64]
     steps:
-      - name: Echo runner info
+      - name: Show runner info
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           Write-Host "RUNNER_OS=$env:RUNNER_OS"
           Write-Host "RUNNER_ARCH=$env:RUNNER_ARCH"
           Write-Host "RUNNER_NAME=$env:RUNNER_NAME"
-          Write-Host "GITHUB_WORKSPACE=$env:GITHUB_WORKSPACE"
-          Start-Sleep -Seconds
+          Start-Sleep -Seconds 10
+          Write-Host "Ping step finished."
