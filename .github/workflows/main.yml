@@ -1,79 +1,38 @@
-name: Package Unreal Engine Acher Of LegendProject
-run-name: ${{ github.actor }} 🚀 UE5 패키징
+name: Package Unreal Engine AcherOfLegend Game Project
 
 on:
-  workflow_dispatch: {}                # 수동 실행 버튼
   push:
-    branches: [ master ]               # 기본 브랜치가 main이면 main으로 변경
+    branches:
+      - master
     paths-ignore:
-      - 'Windows/**'
+      - 'Windows/**' # windows 폴더 내 모든 파일 제외
       - 'Build/**'
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
   build:
-    runs-on: [self-hosted, Windows, X64]  # 러너 라벨과 반드시 일치
-    defaults:
-      run:
-        shell: pwsh                      # PowerShell로 통일
-    name: Package Unreal Engine Game
-
+    runs-on: self-hosted
+    name: AcherOfLegend Game
     steps:
-      # 0) 런타임 정보
-      - name: Echo runner info
-        run: |
-          echo "Runner OS: ${{ runner.os }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Repo: ${{ github.repository }}"
-          $PSVersionTable.PSVersion
-          whoami
-
-      # 1) Git 경로 주입 (Checkout 전에!)
-      - name: Add Git to PATH (bin & cmd)
-        run: |
-          $gitBin = 'C:\Program Files\Git\bin'
-          $gitCmd = 'C:\Program Files\Git\cmd'
-          if (Test-Path $gitBin) { echo $gitBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
-          if (Test-Path $gitCmd) { echo $gitCmd | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
-          where.exe git
-          git --version
-
-      # 2) 네트워크 체크(선택)
-      - name: TLS test to github.com:443
-        run: Test-NetConnection github.com -Port 443
-
-      # 3) 코드 체크아웃
+      # 1. 코드 체크아웃
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      # 4) 경로 sanity 체크
-      - name: "Sanity check - UE/UProject/Output dirs"
+      # 2. Unreal Engine 프로젝트 패키징
+      - name: Package Project
+        env: 
+          UE_PATH: 'D:\Epic Games\UE_5.4' # Path to your Unreal Engine installation
+          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject' # Path to your Unreal project file
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\test' # Path to where you want to store the packaged game
         run: |
-          Write-Host "UAT:" (Test-Path 'D:\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat')
-          Write-Host "uproject:" (Test-Path 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject')
-          New-Item -ItemType Directory -Force -Path 'E:\dohan\AcherOfLegend\AcherOfLegend\test\AcherOfLegend' | Out-Null
-
-      # 5) 패키징
-      - name: Package Project (UAT BuildCookRun)
-        env:
-          UE_PATH: 'D:\Epic Games\UE_5.4'
-          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject'
-          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\test\AcherOfLegend'
-        run: >
-          & "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat"
-          BuildCookRun
-          -project="$env:PROJECT_PATH"
-          -noP4
-          -platform=Win64
-          -clientconfig=Development
-          -serverconfig=Development
-          -cook -allmaps -build -stage -pak -archive
-          -archivedirectory="$env:OUTPUT_PATH"
-
-      # 6) Windows 폴더 압축
+          # Try to run empty UAT to check for correct path
+          & $env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat BuildCookRun -project="$env:PROJECT_PATH" -noP4 -platform=Win64 -clientconfig=Development -serverconfig=Development -cook -allmaps -build -stage -pak -archive -archivedirectory="$env:OUTPUT_PATH"
+        
+      # 3. Windows 폴더 압축
       - name: Compress Windows Folder
         run: |
           cd "E:\dohan\AcherOfLegend\AcherOfLegend\test"
-          if (Test-Path "Windows.zip") { Remove-Item "Windows.zip" -Force }
-          Compress-Archive -Path Windows -DestinationPath Windows.zip -Force
+          if (Test-Path "Windows.zip") { Remove-Item "Windows.zip" } # 기존 zip 파일 삭제
+          Compress-Archive -Path Windows -DestinationPath Windows.zip # Windows 폴더 압축
