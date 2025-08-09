@@ -1,20 +1,17 @@
-name: Ping self-hosted Windows
+name: Runner sanity check
 
 on:
-  push:
-    branches: [ master ]
   workflow_dispatch: {}
 
 jobs:
-  ping:
+  test:
     runs-on: [self-hosted, Windows, X64]
     steps:
-      - name: Show runner info
+      - name: Say hello
         shell: powershell
         run: |
-          $ErrorActionPreference='Stop'
           Write-Host "RUNNER_OS=$env:RUNNER_OS"
           Write-Host "RUNNER_ARCH=$env:RUNNER_ARCH"
           Write-Host "RUNNER_NAME=$env:RUNNER_NAME"
-          Start-Sleep -Seconds 10
-          Write-Host "Ping step finished."
+          Start-Sleep -Seconds 5
+          Write-Host "This is the end."
