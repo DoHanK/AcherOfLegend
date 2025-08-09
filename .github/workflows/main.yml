@@ -1,38 +1,46 @@
-name Package Unreal Engine AcherOfLegend Game Project
+name: Package Unreal Engine AcherOfLegend Game Project
 
-on
-  push
-    branches
+on:
+  push:
+    branches:
       - master
-    paths-ignore
-      - 'Windows' # windows 폴더 내 모든 파일 제외
-      - 'Build'
-  pull_request
-    branches
+    paths-ignore:
+      - 'Windows/**' # windows 폴더 내 모든 파일 제외
+      - 'Build/**'
+  pull_request:
+    branches:
       - master
 
-jobs
-  build
-    runs-on self-hosted
-    name AcherOfLegend Game
-    steps
+jobs:
+  build:
+    runs-on: self-hosted
+    name: AcherOfLegend Game
+    steps:
       # 1. 코드 체크아웃
-      - name Checkout code
-        uses actionscheckout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       # 2. Unreal Engine 프로젝트 패키징
-      - name Package Project
-        env 
-          UE_PATH 'DEpic GamesUE_5.4' # Path to your Unreal Engine installation
-          PROJECT_PATH 'EdohanAcherOfLegendAcherOfLegendAcherOfLegend.uproject' # Path to your Unreal project file
-          OUTPUT_PATH 'EdohanAcherOfLegendAcherOfLegendtest' # Path to where you want to store the packaged game
-        run 
+      - name: Package Project
+        shell: powershell
+        env: 
+          UE_PATH: 'D:\Epic Games\UE_5.4' # Path to your Unreal Engine installation
+          PROJECT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\AcherOfLegend.uproject' # Path to your Unreal project file
+          OUTPUT_PATH: 'E:\dohan\AcherOfLegend\AcherOfLegend\test' # Path to where you want to store the packaged game
+        run: |
           # Try to run empty UAT to check for correct path
-          & "$envUE_PATHEngineBuildBatchFilesRunUAT.bat" BuildCookRun -project=$envPROJECT_PATH -noP4 -platform=Win64 -clientconfig=Development -serverconfig=Development -cook -allmaps -build -stage -pak -archive -archivedirectory=$envOUTPUT_PATH
-        
+          & "$env:UE_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
+            -project="$env:PROJECT_PATH" `
+            -noP4 -platform=Win64 `
+            -clientconfig=Development `
+            -serverconfig=Development `
+            -cook -allmaps -build -stage -pak -archive `
+            -archivedirectory="$env:OUTPUT_PATH"
+
       # 3. Windows 폴더 압축
-      - name Compress Windows Folder
-        run 
-          cd EdohanAcherOfLegendAcherOfLegendtest
-          if (Test-Path Windows.zip) { Remove-Item Windows.zip } # 기존 zip 파일 삭제
-          Compress-Archive -Path Windows -DestinationPath Windows.zip # Windows 폴더 압축
+      - name: Compress Windows Folder
+        shell: powershell
+        run: |
+          cd "E:\dohan\AcherOfLegend\AcherOfLegend\test"
+          if (Test-Path "Windows.zip") { Remove-Item "Windows.zip" -Force } # 기존 zip 파일 삭제
+          Compress-Archive -Path "Windows" -DestinationPath "Windows.zip" # Windows 폴더 압축
