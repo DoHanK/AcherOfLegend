@@ -5,7 +5,7 @@ on:
 
 jobs:
   t:
-    runs-on: self-hosted     # 라벨은 일단 최소화
+    runs-on: self-hosted
     steps:
       - name: cmd sanity
         shell: cmd
